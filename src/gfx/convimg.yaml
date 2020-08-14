@@ -1,0 +1,34 @@
+output: c
+  include-file: gfx.h
+  palettes:
+    - global_palette
+    - terrain_palette
+  converts:
+    - sprites
+    - terrain
+
+palette: global_palette
+  fixed-color: {index:0, r:0, g:0, b:0}
+images: automatic
+
+palette: terrain_palette
+  fixed-color: {index:0, r:0, g:17, b:255}
+  fixed-color: {index:1, r:96, g:12, b:0}
+  fixed-color: {index:2, r:65, g:8, b:0}
+  fixed-color: {index:3, r:144, g:0, b:0}
+images: automatic
+
+convert: sprites
+  palette: global_palette
+  transparent-color-index: 0
+  images:
+    - cursor
+    - power_plant
+    - water
+    - iron_mine
+    - solar_panel
+
+convert: terrain
+    palette: terrain_palette
+    images:
+      - terrain_palette
