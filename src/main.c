@@ -22,6 +22,8 @@ typedef struct {
     int buildingSelected;
     //number of iron mines, etc?
     int numLoops;
+    //water level that will increase with ice to water gens
+    uint8_t waterLevel;
 } game_t;
 game_t game;
 
@@ -174,7 +176,7 @@ void drawTerrain() {
                             terrain.x4 - xOffset,terrain.y4-terrain.z - yOffset);
         }   
 
-        gfx_SetColor(224);
+        gfx_SetColor(32);
         if (terrain.z < 0) gfx_SetColor(17);
         //front left
         //if next row is deeper than row, don't display front/left
@@ -189,7 +191,7 @@ void drawTerrain() {
         }
 
         //front right
-        gfx_SetColor(32);
+        gfx_SetColor(96);
         //color keeps getting shifted because of global palette?
         //gfx_SetColor(64);
         if (terrain.z < 0) gfx_SetColor(17);
@@ -201,7 +203,7 @@ void drawTerrain() {
                         terrain.x2 - xOffset,terrain.y2 - yOffset, 
                         terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z);
         //top
-        gfx_SetColor(96);
+        gfx_SetColor(224);
         if (terrain.z < 0) gfx_SetColor(17);
         //snow
         if (terrain.z > 25) gfx_SetColor(255);
@@ -251,6 +253,29 @@ void BlaText(void) {
     gfx_SetTextTransparentColor(255);
 }
 
+//used when loading map after exiting tab
+void progressBar() {
+    int idx;
+    //take idx from draw terrain
+    //drawn from top left corner
+    WhiText();
+    //... should be animated using modulo command
+    gfx_PrintStringXY("Loading",40,32);
+    gfx_SetColor(0);
+    //height of each 
+    gfx_FillRectangle(40,110,240,20);
+    for (idx = 0; idx < numTiles; idx++) {
+        terrain_t terrain = terrainTiles[idx];
+        //setdraw buffer then swapdraw
+        //height of each
+        gfx_SetColor(224); 
+        gfx_SetDrawBuffer();
+        gfx_HorizLine(idx + 40, 130 - (terrain.z / 10), terrain.z / 10);
+        //gfx_HorizLine(idx + 40, 130 - terrain.z, terrain.z);
+        gfx_SwapDraw();
+    }
+}
+
 void drawTabs() {
     gfx_SetColor(0);
     gfx_FillRectangle(0,0,320,30);
@@ -264,7 +289,7 @@ void drawTabs() {
     WhiText();
     gfx_SetTextScale(1,1);
     if (game.menuSelected == 0) {
-        gfx_PrintStringXY("HYDRA",10,12);
+        gfx_PrintStringXY("MARS",10,12);
         gfx_PrintStringXY("YEAR 202",310 - gfx_GetStringWidth("YEAR 2020"),12);
         gfx_PrintInt(game.year,1);
         WhiText();
@@ -333,10 +358,10 @@ void drawCursor() {
         if (kb_Data[6] == kb_Add) {
             //get cursor x and find the tile that the building belongs
             //check if tile is not water
-
+            //maybe draw outline instead
             for (idx = 0; idx < numTiles; idx++) {
                 terrain_t* terrain = &(terrainTiles[idx]);
-                if (game.cursorx < terrain->x2 && game.cursorx > terrain->x4) {
+                if (game.cursorx + 5 < terrain->x2 && game.cursorx - 5 > terrain->x4 && game.cursory + 5 < terrain->y3 && game.cursory - 5 > terrain->topX) {
                     //if tile is not occupied and not water
                     if (terrain->z > 0) {
                         if (terrain->building == false) {
@@ -464,8 +489,12 @@ void drawScreen() {
         game.menuSelected = 0;
         gfx_SetDrawScreen();
         gfx_FillScreen(0);
+        
         drawTerrain();
+        //place inside of draw terrain function
+        //progressBar();
         drawBuildings();
+        
         drawTabs();
         gfx_Blit(0);
         gfx_SwapDraw();
