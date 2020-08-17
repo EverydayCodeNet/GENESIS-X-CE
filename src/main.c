@@ -9,6 +9,7 @@
 kb_key_t key;
 
 typedef struct {
+    int seed;
     int cursorx;
     int cursory;
     int year;
@@ -24,6 +25,9 @@ typedef struct {
     int numLoops;
     //water level that will increase with ice to water gens
     uint8_t waterLevel;
+
+    //disable keyboard scan if this is enabled
+    bool canPress;
 } game_t;
 game_t game;
 
@@ -57,9 +61,15 @@ int yOffset;
 int numTiles = 400;
 
 void SaveData(void) {
-    int idx;
     ti_var_t slota;
     ti_CloseAll();
+    //if (slota = ti_Open("HUEDAT","w+")) ti_Write(&game,sizeof(game),1,slota);
+    if (slota = ti_Open("HUEDAT","w+")) {
+        ti_Write(&game,sizeof(game),1,slota);
+        ti_Write(&terrainTiles,sizeof(terrainTiles),1,slota);
+    }
+    
+    ti_SetArchiveStatus(true, slota);
     //for (i = 0; i < 7; i++) ti_Write(region[i].data, region[i].spr->width * region[i].spr->height, 1, slota);
     //for (idx = 0; idx < 400; idx++) ti_Write(&terrainTiles,sizeof(terrain_t),1,slota);
     //for (idx = 0; idx < 400; idx++) ti_Write(&terrainTiles, sizeof(terrain_t), 1, slota);
@@ -68,12 +78,20 @@ void SaveData(void) {
 
 void LoadData(void) {
     ti_var_t slota;
-    int idx;
     ti_CloseAll();
     if (slota = ti_Open("GENDAT", "r")) {
-        //ti_Read(&terrainTiles, sizeof(terrain_t), 1, slota);
-        //ti_Read(tile[idx].data, tile[idx].spr->width * tile[idx].spr->height, 1, slota);
-        for (idx = 0; idx < 400; idx++) ti_Read(&terrainTiles[idx].z, sizeof(terrain_t), 1, slota);
+        ti_Read(&game, sizeof(game),1,slota);
+        ti_Read(&terrainTiles, sizeof(terrainTiles),1,slota);
+    }
+}
+
+void CreateSave(void) {
+    ti_var_t slota;
+    ti_CloseAll();
+    if (slota = ti_Open("GENDAT","w+")) {
+        ti_Write(&game, sizeof(game), 1, slota);
+        ti_Write(&terrainTiles, sizeof(terrainTiles),1,slota);
+        ti_SetArchiveStatus(true, slota);
     }
 }
 
@@ -253,6 +271,47 @@ void BlaText(void) {
     gfx_SetTextTransparentColor(255);
 }
 
+void mainMenu() {
+    int idx;
+    uint8_t menuSelected;
+    do {
+        kb_Scan();
+        gfx_SetDrawBuffer();
+
+        gfx_FillScreen(0);
+        //draw stars
+        WhiText();
+        gfx_SetTextScale(2,2);
+        gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2),58);
+        gfx_PrintStringXY("HOW TO PLAY",(160 - gfx_GetStringWidth("HOW TO PLAY") / 2),94);
+        gfx_PrintStringXY("ABOUT",(160 - gfx_GetStringWidth("ABOUT") / 2),130);
+        gfx_PrintStringXY("QUIT",(160 - gfx_GetStringWidth("QUIT") / 2),166);
+        
+        if (kb_Data[7] == kb_Up && menuSelected != 0) {
+            delay(150);
+            menuSelected--;
+        } else if (kb_Data[7] == kb_Down && menuSelected != 3) {
+            delay(150);
+            menuSelected++;
+        }
+
+        if (menuSelected == 0) {
+            YelText();
+            gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2),58);
+        } else if (menuSelected == 1) {
+            YelText();
+            gfx_PrintStringXY("HOW TO PLAY",(160 - gfx_GetStringWidth("HOW TO PLAY") / 2),94);
+        } else if (menuSelected == 2) {
+            YelText();
+            gfx_PrintStringXY("ABOUT",(160 - gfx_GetStringWidth("ABOUT") / 2),130);
+        } else if (menuSelected == 3) {
+            YelText();
+            gfx_PrintStringXY("QUIT",(160 - gfx_GetStringWidth("QUIT") / 2),166);
+        }
+        gfx_SwapDraw();
+    } while(kb_Data[6] != kb_Enter);   
+}
+
 //used when loading map after exiting tab
 void progressBar() {
     int idx;
@@ -333,6 +392,7 @@ void drawTabs() {
 
 void drawCursor() {
     int idx;
+    terrain_t* terrain = &(terrainTiles[game.tileSelected]);
     gfx_SetColor(255);
     //change cursor to building selected
     if (game.buildingSelected == 0) {
@@ -344,7 +404,7 @@ void drawCursor() {
         gfx_SetPixel(game.cursorx,game.cursory - 1);
         gfx_SetPixel(game.cursorx,game.cursory + 1);
     } else {
-        if (game.buildingSelected == 1301) {
+        /*if (game.buildingSelected == 1301) {
             gfx_TransparentSprite(iron_mine, game.cursorx, game.cursory);
         } else if (game.buildingSelected == 1601) {
             gfx_TransparentSprite(solar_panel, game.cursorx, game.cursory);
@@ -352,10 +412,61 @@ void drawCursor() {
             gfx_TransparentSprite(power_plant, game.cursorx, game.cursory);
         } else if (game.buildingSelected == 2301) {
             gfx_TransparentSprite(water, game.cursorx, game.cursory);
+        }*/
+
+        if (kb_Data[7] == kb_Down && game.tileSelected < 379) {
+            delay(150);
+            game.tileSelected = game.tileSelected + 20; 
+        } else if (kb_Data[7] == kb_Up && game.tileSelected > 19) {
+            delay(150);
+            game.tileSelected = game.tileSelected - 20;
+        } else if (kb_Data[7] == kb_Left && game.tileSelected != 0) {
+            delay(150);
+            game.tileSelected--;
+        } else if (kb_Data[7] == kb_Right && game.tileSelected != 379)  {
+            delay(150);
+            game.tileSelected++;
         }
 
+        if (game.buildingSelected == 1301) gfx_TransparentSprite(iron_mine, terrain->topX - 12, terrain->y3 - 26);
+        if (game.buildingSelected == 1601) gfx_TransparentSprite(solar_panel, terrain->topX - 12, terrain->y3 - 26);
+        if (game.buildingSelected == 1602) gfx_TransparentSprite(power_plant, terrain->topX - 12, terrain->y3 - 26);
+        if (game.buildingSelected == 2301) gfx_TransparentSprite(water,terrain->topX - 12, terrain->y3 - 26);
+
+        gfx_SetColor(255);
+        gfx_Line(terrain->topX - xOffset,terrain->topY - yOffset,terrain->x2 - xOffset,terrain->y2 - yOffset);
+        gfx_Line(terrain->x2 - xOffset,terrain->y2 - yOffset,terrain->x3 - xOffset,terrain->y3 - yOffset);
+        gfx_Line(terrain->x3 - xOffset,terrain->y3 - yOffset,terrain->x4 - xOffset,terrain->y4 - yOffset);
+        gfx_Line(terrain->x4 - xOffset,terrain->y4 - yOffset,terrain->topX - xOffset,terrain->topY - yOffset);
+
+        if (kb_Data[6] == kb_Enter && terrain->z > game.waterLevel && terrain->building == false) {
+            BlaText();
+            gfx_SetTextScale(2,2);
+            gfx_PrintStringXY("THIS IS WORKING", 160 - (gfx_GetStringWidth("THIS IS WORKING") / 2), (240 - 8) / 2);
+            gfx_SetTextScale(1,1);
+            terrain->building = true;
+            terrain->buildingID = game.buildingSelected;
+            game.buildingSelected = 0;
+            //update map
+            gfx_SetDrawBuffer();
+            drawBuildings();
+            gfx_SwapDraw();
+        } else if (terrain->z <= game.waterLevel) {
+            BlaText();
+            gfx_SetTextScale(2,2);
+            gfx_PrintStringXY("Cannot build on water.", 160 - (gfx_GetStringWidth("Cannot build on water.") / 2), (240 - 8) / 2);
+            gfx_SetTextScale(1,1);
+        } else if (terrain->building == true) {
+            BlaText();
+            gfx_SetTextScale(2,2);
+            gfx_PrintStringXY("Tile is occupied.", 160 - (gfx_GetStringWidth("Tile is occupied.") / 2), (240 - 8) / 2);
+            gfx_SetTextScale(1,1);
+        }
+        //turn off cursor
+        
+        
         //place down building
-        if (kb_Data[6] == kb_Add) {
+        /*if (kb_Data[6] == kb_Add) {
             //get cursor x and find the tile that the building belongs
             //check if tile is not water
             //maybe draw outline instead
@@ -384,7 +495,7 @@ void drawCursor() {
                     
                 }
             }
-        }
+        }*/
     }
 }
 
@@ -484,9 +595,9 @@ void drawScreen() {
             }
             gfx_SwapDraw();
         } while(kb_Data[6] != kb_Enter);
-        delay(100);
         
         game.menuSelected = 0;
+        
         gfx_SetDrawScreen();
         gfx_FillScreen(0);
         
@@ -500,7 +611,6 @@ void drawScreen() {
         gfx_SwapDraw();
         gfx_SetDrawScreen();
         drawCursor();
-        
     } else if (game.menuSelected == 2) {
         //statistics
         drawTabs();
@@ -519,7 +629,7 @@ void handleKeys() {
         drawScreen();
         
     } else if (key == kb_Zoom) {
-        //stats
+        //stats- probably change to zoom in, have stats be third tab
         game.menuSelected = 2;
         drawScreen();
     } else if (key == kb_Graph || kb_Data[6] == kb_Clear) {
@@ -569,9 +679,18 @@ void doCursor() {
     }
 }
 
+void delBuildings() {
+    int idx;
+    for (idx = 0; idx < numTiles; idx++) {
+        terrain_t* terrain = &(terrainTiles[idx]);
+        terrain->building = false;
+    }
+    game.buildingSelected = 0;
+}
+
 void startGame() {
     srand(rtc_Time());
-
+    game.seed = rtc_Time();
     createTerrain();
     game.cursorx = 160;
     game.cursory = 120;
@@ -589,13 +708,18 @@ void startGame() {
 
 void main() {
     gfx_Begin();
+    mainMenu();
+    
+    gfx_Begin();
     LoadData();
+    game.seed = rtc_Time();
     srand(rtc_Time());
-
     createTerrain();
+    //may cause issue with placing buildings
     game.cursorx = 160;
     game.cursory = 120;
     game.doCursor = true;
+    game.canPress = true;
     gfx_SetDrawScreen();
     gfx_FillScreen(0);
     drawTerrain();
@@ -616,6 +740,7 @@ void main() {
         game.genCoin = game.numLoops / 10;
         if (kb_Data[1] == kb_Del) startGame();
     } while (kb_Data[6] != kb_Clear);
+    CreateSave();
     SaveData();
     gfx_End();
 }
