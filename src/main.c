@@ -9,6 +9,13 @@
 kb_key_t key;
 
 typedef struct {
+    unsigned int dotX;
+    unsigned int dotY;
+} star_t;
+star_t stars[100];
+
+typedef struct {
+    bool startGame;
     int seed;
     int cursorx;
     int cursory;
@@ -16,6 +23,8 @@ typedef struct {
     bool menu;
     bool doCursor;
     int zAvg;
+
+    //could be set to extern int?
     uint8_t menuSelected;
     int tileSelected;
     int genCoin;
@@ -28,6 +37,9 @@ typedef struct {
 
     //disable keyboard scan if this is enabled
     bool canPress;
+
+    //used for start menu
+    bool save;
 } game_t;
 game_t game;
 
@@ -53,12 +65,12 @@ typedef struct {
     //23xx - water
     //13xx - iron mine
 } terrain_t;
-
 terrain_t terrainTiles[400];
 
 int xOffset;
 int yOffset;
 int numTiles = 400;
+bool startGame = false;
 
 void SaveData(void) {
     ti_var_t slota;
@@ -95,6 +107,24 @@ void CreateSave(void) {
     }
 }
 
+void WhiText(void) {
+    gfx_SetTextBGColor(0);
+    gfx_SetTextFGColor(255);
+    gfx_SetTextTransparentColor(0);
+}
+
+void YelText(void) {
+    gfx_SetTextBGColor(0);
+    gfx_SetTextFGColor(229);
+    gfx_SetTextTransparentColor(0);
+}
+
+void BlaText(void) {
+    gfx_SetTextBGColor(255);
+    gfx_SetTextFGColor(0);
+    gfx_SetTextTransparentColor(255);
+}
+
 void createTerrain() {
     ti_var_t slota;
     int idx = 0;
@@ -127,18 +157,8 @@ void createTerrain() {
                 } else if (idx > 19 && column == 0) {
                     terrain->z = prevRow.z + randInt(-5,5);
                 }
-                
+                //temporary building test
                 if (idx == 210) terrain->building = 1; terrain->buildingID = 1301;
-                /*if (randInt(0,10) == 1 && terrain->z > 0) {
-                    terrain->building = 1;
-                    if (idx % 3 == 0) {
-                        terrain->buildingID = 1301;
-                    } else if (idx % 2 == 0) {
-                        terrain->buildingID = 1602;
-                    } else if (idx % 5 == 0) {
-                        terrain->buildingID = 2301;
-                    }
-                }*/
                 idx++;
             }
         }
@@ -253,64 +273,86 @@ void drawBuildings() {
     }
 }
 
-void WhiText(void) {
-    gfx_SetTextBGColor(0);
-    gfx_SetTextFGColor(255);
-    gfx_SetTextTransparentColor(0);
-}
-
-void YelText(void) {
-    gfx_SetTextBGColor(0);
-    gfx_SetTextFGColor(229);
-    gfx_SetTextTransparentColor(0);
-}
-
-void BlaText(void) {
-    gfx_SetTextBGColor(255);
-    gfx_SetTextFGColor(0);
-    gfx_SetTextTransparentColor(255);
-}
-
 void mainMenu() {
     int idx;
-    uint8_t menuSelected;
+    bool doMenu = true;
+    uint8_t menuSelected = 0;
+    //each menu path has pages
+    uint8_t page = 0;
+    key = kb_Data[6];
+    gfx_Begin();
+    
     do {
+        //delay needed to stop enter from triggering next menu on start
         kb_Scan();
         gfx_SetDrawBuffer();
-
         gfx_FillScreen(0);
-        //draw stars
         WhiText();
-        gfx_SetTextScale(2,2);
-        gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2),58);
-        gfx_PrintStringXY("HOW TO PLAY",(160 - gfx_GetStringWidth("HOW TO PLAY") / 2),94);
-        gfx_PrintStringXY("ABOUT",(160 - gfx_GetStringWidth("ABOUT") / 2),130);
-        gfx_PrintStringXY("QUIT",(160 - gfx_GetStringWidth("QUIT") / 2),166);
         
-        if (kb_Data[7] == kb_Up && menuSelected != 0) {
-            delay(150);
-            menuSelected--;
-        } else if (kb_Data[7] == kb_Down && menuSelected != 3) {
-            delay(150);
-            menuSelected++;
-        }
-
-        if (menuSelected == 0) {
-            YelText();
+        if (page == 0) {
+            if (kb_Data[6] & kb_Enter) page = 1;
+            if (kb_Data[7] == kb_Up && menuSelected != 0) {
+                delay(150);
+                menuSelected--;
+            } else if (kb_Data[7] == kb_Down && menuSelected != 3) {
+                delay(150);
+                menuSelected++;
+            }
+            
+            //draw stars
+            /*for (idx = 0; idx < 100; idx++) {
+                gfx_SetColor(255);
+                gfx_FillRectangle(randInt(0,320),randInt(0,240),randInt(1,4),randInt(1,4));
+            }*/
+            WhiText();
+            gfx_SetTextScale(2,2);
             gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2),58);
-        } else if (menuSelected == 1) {
-            YelText();
             gfx_PrintStringXY("HOW TO PLAY",(160 - gfx_GetStringWidth("HOW TO PLAY") / 2),94);
-        } else if (menuSelected == 2) {
-            YelText();
             gfx_PrintStringXY("ABOUT",(160 - gfx_GetStringWidth("ABOUT") / 2),130);
-        } else if (menuSelected == 3) {
-            YelText();
             gfx_PrintStringXY("QUIT",(160 - gfx_GetStringWidth("QUIT") / 2),166);
+            
+            if (menuSelected == 0) {
+                YelText();
+                gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2),58);
+            } else if (menuSelected == 1) {
+                YelText();
+                gfx_PrintStringXY("HOW TO PLAY",(160 - gfx_GetStringWidth("HOW TO PLAY") / 2),94);
+            } else if (menuSelected == 2) {
+                YelText();
+                gfx_PrintStringXY("ABOUT",(160 - gfx_GetStringWidth("ABOUT") / 2),130);
+            } else if (menuSelected == 3) {
+                YelText();
+                gfx_PrintStringXY("QUIT",(160 - gfx_GetStringWidth("QUIT") / 2),166);
+            }
+        } else if (page == 1 && menuSelected == 0) {
+            if (kb_Data[6] & kb_Clear) page = 0;
+            if (kb_Data[6] & kb_Enter) doMenu = false; startGame = true; 
+            WhiText();
+            gfx_SetTextScale(2,2);
+            gfx_PrintStringXY("START GAME",(160 - gfx_GetStringWidth("START GAME") / 2), 4);
+            gfx_HorizLine(0,24,320);
+            //check for save
+            gfx_SetTextScale(1,1);
+            YelText();
+            if (game.save == false) {
+                gfx_PrintStringXY("NEW GAME",(160 - gfx_GetStringWidth("NEW GAME") / 2),34);
+            } else {
+                gfx_PrintStringXY("MARS - YEAR     ",(160 - gfx_GetStringWidth("MARS - YEAR     ") / 2),34);
+                gfx_PrintInt(game.year,1);
+            }
+            //reset game option?
+            WhiText();
+            gfx_PrintStringXY("BACK",(160 - gfx_GetStringWidth("BACK") / 2),44);
+        } else if (page == 1 && menuSelected == 3) {
+            startGame = false;
+            doMenu = false;
         }
+        
         gfx_SwapDraw();
-    } while(kb_Data[6] != kb_Enter);   
+        //exit condition triggered by enter
+    } while(doMenu == true);
 }
+
 
 //used when loading map after exiting tab
 void progressBar() {
@@ -404,16 +446,16 @@ void drawCursor() {
         gfx_SetPixel(game.cursorx,game.cursory - 1);
         gfx_SetPixel(game.cursorx,game.cursory + 1);
     } else {
-        /*if (game.buildingSelected == 1301) {
-            gfx_TransparentSprite(iron_mine, game.cursorx, game.cursory);
-        } else if (game.buildingSelected == 1601) {
-            gfx_TransparentSprite(solar_panel, game.cursorx, game.cursory);
-        } else if (game.buildingSelected == 1602) {
-            gfx_TransparentSprite(power_plant, game.cursorx, game.cursory);
-        } else if (game.buildingSelected == 2301) {
-            gfx_TransparentSprite(water, game.cursorx, game.cursory);
-        }*/
+        if (game.buildingSelected == 1301) gfx_TransparentSprite(iron_mine, terrain->topX - 12 - xOffset, terrain->y3 - 26 - yOffset);
+        if (game.buildingSelected == 1601) gfx_TransparentSprite(solar_panel, terrain->topX - 12 - xOffset, terrain->y3 - 26 - yOffset);
+        if (game.buildingSelected == 1602) gfx_TransparentSprite(power_plant, terrain->topX - 12 - xOffset, terrain->y3 - 26 - yOffset);
+        if (game.buildingSelected == 2301) gfx_TransparentSprite(water,terrain->topX - 12 - xOffset, terrain->y3 - 26 - yOffset);
 
+        gfx_SetColor(255);
+        gfx_Line(terrain->topX - xOffset,terrain->topY - yOffset,terrain->x2 - xOffset,terrain->y2 - yOffset);
+        gfx_Line(terrain->x2 - xOffset,terrain->y2 - yOffset,terrain->x3 - xOffset,terrain->y3 - yOffset);
+        gfx_Line(terrain->x3 - xOffset,terrain->y3 - yOffset,terrain->x4 - xOffset,terrain->y4 - yOffset);
+        gfx_Line(terrain->x4 - xOffset,terrain->y4 - yOffset,terrain->topX - xOffset,terrain->topY - yOffset);
         if (kb_Data[7] == kb_Down && game.tileSelected < 379) {
             delay(150);
             game.tileSelected = game.tileSelected + 20; 
@@ -427,75 +469,32 @@ void drawCursor() {
             delay(150);
             game.tileSelected++;
         }
-
-        if (game.buildingSelected == 1301) gfx_TransparentSprite(iron_mine, terrain->topX - 12, terrain->y3 - 26);
-        if (game.buildingSelected == 1601) gfx_TransparentSprite(solar_panel, terrain->topX - 12, terrain->y3 - 26);
-        if (game.buildingSelected == 1602) gfx_TransparentSprite(power_plant, terrain->topX - 12, terrain->y3 - 26);
-        if (game.buildingSelected == 2301) gfx_TransparentSprite(water,terrain->topX - 12, terrain->y3 - 26);
-
-        gfx_SetColor(255);
-        gfx_Line(terrain->topX - xOffset,terrain->topY - yOffset,terrain->x2 - xOffset,terrain->y2 - yOffset);
-        gfx_Line(terrain->x2 - xOffset,terrain->y2 - yOffset,terrain->x3 - xOffset,terrain->y3 - yOffset);
-        gfx_Line(terrain->x3 - xOffset,terrain->y3 - yOffset,terrain->x4 - xOffset,terrain->y4 - yOffset);
-        gfx_Line(terrain->x4 - xOffset,terrain->y4 - yOffset,terrain->topX - xOffset,terrain->topY - yOffset);
-
-        if (kb_Data[6] == kb_Enter && terrain->z > game.waterLevel && terrain->building == false) {
-            BlaText();
-            gfx_SetTextScale(2,2);
-            gfx_PrintStringXY("THIS IS WORKING", 160 - (gfx_GetStringWidth("THIS IS WORKING") / 2), (240 - 8) / 2);
-            gfx_SetTextScale(1,1);
-            terrain->building = true;
-            terrain->buildingID = game.buildingSelected;
-            game.buildingSelected = 0;
-            //update map
-            gfx_SetDrawBuffer();
-            drawBuildings();
-            gfx_SwapDraw();
-        } else if (terrain->z <= game.waterLevel) {
-            BlaText();
-            gfx_SetTextScale(2,2);
-            gfx_PrintStringXY("Cannot build on water.", 160 - (gfx_GetStringWidth("Cannot build on water.") / 2), (240 - 8) / 2);
-            gfx_SetTextScale(1,1);
-        } else if (terrain->building == true) {
-            BlaText();
-            gfx_SetTextScale(2,2);
-            gfx_PrintStringXY("Tile is occupied.", 160 - (gfx_GetStringWidth("Tile is occupied.") / 2), (240 - 8) / 2);
-            gfx_SetTextScale(1,1);
-        }
-        //turn off cursor
-        
-        
-        //place down building
-        /*if (kb_Data[6] == kb_Add) {
-            //get cursor x and find the tile that the building belongs
-            //check if tile is not water
-            //maybe draw outline instead
-            for (idx = 0; idx < numTiles; idx++) {
-                terrain_t* terrain = &(terrainTiles[idx]);
-                if (game.cursorx + 5 < terrain->x2 && game.cursorx - 5 > terrain->x4 && game.cursory + 5 < terrain->y3 && game.cursory - 5 > terrain->topX) {
-                    //if tile is not occupied and not water
-                    if (terrain->z > 0) {
-                        if (terrain->building == false) {
-                            terrain->building = true;
-                            terrain->buildingID = game.buildingSelected;
-                            game.buildingSelected = 0;
-                            //update map
-                            //set it to draw buffer?
-                            gfx_SetDrawBuffer();
-                            drawBuildings();
-                            gfx_SwapDraw();
-                            //gfx_SetDrawScreen();
-                        }
-                    } else if (terrain->z < 0) {
-                        BlaText();
-                        gfx_SetTextScale(2,2);
-                        gfx_PrintStringXY("Cannot build on water.", 160 - (gfx_GetStringWidth("Cannot build on water.") / 2), (240 - 8) / 2);
-                        gfx_SetTextScale(1,1);
-                    }
-                    
-                }
+        if (kb_Data[6] == kb_Add) {
+            if (terrain->z > game.waterLevel && terrain->building == false) {
+                //this needs to be temporary. text should only display after 
+                BlaText();
+                gfx_SetTextScale(2,2);
+                gfx_PrintStringXY("THIS IS WORKING", 160 - (gfx_GetStringWidth("THIS IS WORKING") / 2), (240 - 8) / 2);
+                gfx_SetTextScale(1,1);
+                terrain->building = true;
+                terrain->buildingID = game.buildingSelected;
+                game.buildingSelected = 0;
+                //update map
+                gfx_SetDrawBuffer();
+                drawBuildings();
+                gfx_SwapDraw();
+            } else if (terrain->z <= game.waterLevel) {
+                BlaText();
+                gfx_SetTextScale(2,2);
+                gfx_PrintStringXY("Cannot build on water.", 160 - (gfx_GetStringWidth("Cannot build on water.") / 2), (240 - 8) / 2);
+                gfx_SetTextScale(1,1);
+            } else if (terrain->building == true) {
+                BlaText();
+                gfx_SetTextScale(2,2);
+                gfx_PrintStringXY("Tile is occupied.", 160 - (gfx_GetStringWidth("Tile is occupied.") / 2), (240 - 8) / 2);
+                gfx_SetTextScale(1,1);
             }
-        }*/
+        }
     }
 }
 
@@ -508,7 +507,6 @@ void shiftMap() {
     drawTabs();
     gfx_SetDrawScreen();
     drawCursor();
-    //gfx_SwapDraw();
 }
 
 void dispStats() {
@@ -523,15 +521,9 @@ void dispStats() {
 void doRedraw() {
     //act on the screen
     gfx_SetDrawScreen();
-    //gfx_FillScreen(0);
-    //gfx_SetColor(0);
-    //gfx_Circle(game.cursorx,game.cursory,5);
     //redraw buffered background
     gfx_Blit(1);
-    //temporary clear screen for stats
-    
     drawCursor();
-    //dispStats();
 }
 
 void drawScreen() {
@@ -545,7 +537,6 @@ void drawScreen() {
         drawTabs();
         key = kb_Data[6];
         gfx_Begin();
-        //gfx_SetDrawBuffer();
         
         gfx_SetPalette(global_palette, sizeof_global_palette, 0);
         gfx_SetTransparentColor(0);
@@ -688,30 +679,9 @@ void delBuildings() {
     game.buildingSelected = 0;
 }
 
-void startGame() {
-    srand(rtc_Time());
-    game.seed = rtc_Time();
-    createTerrain();
-    game.cursorx = 160;
-    game.cursory = 120;
-    game.doCursor = true;
-    gfx_SetDrawScreen();
-    gfx_FillScreen(0);
-    drawTerrain();
-    drawBuildings();
-    drawTabs();
-    gfx_Blit(0);
-    gfx_SwapDraw();
-    gfx_SetDrawScreen();
-    drawCursor();
-}
-
-void main() {
+//supposed to be startGame - ran into conflict error with startGame bool
+void runGame() {
     gfx_Begin();
-    mainMenu();
-    
-    gfx_Begin();
-    LoadData();
     game.seed = rtc_Time();
     srand(rtc_Time());
     createTerrain();
@@ -720,6 +690,7 @@ void main() {
     game.cursory = 120;
     game.doCursor = true;
     game.canPress = true;
+    game.menuSelected = 0;
     gfx_SetDrawScreen();
     gfx_FillScreen(0);
     drawTerrain();
@@ -730,17 +701,26 @@ void main() {
     gfx_SwapDraw();
     gfx_SetDrawScreen();
     drawCursor();
-    
-    do {
-        kb_Scan();
-        doCursor();
-        handleKeys();
-        //update gold with every iron mine
-        game.numLoops++;
-        game.genCoin = game.numLoops / 10;
-        if (kb_Data[1] == kb_Del) startGame();
-    } while (kb_Data[6] != kb_Clear);
-    CreateSave();
-    SaveData();
+}
+
+void main() {
+    LoadData();
+    mainMenu();
+    if (startGame == true) {
+        runGame();
+        do {
+            gfx_PrintStringXY("SUBSCRIBE TO EVERYDAY CODE",10,10);
+            kb_Scan()
+            doCursor();
+            handleKeys();
+            //update gold with every iron mine
+            game.numLoops++;
+            game.genCoin = game.numLoops / 10;
+            if (kb_Data[1] == kb_Del) runGame();
+        } while (kb_Data[6] != kb_Clear);
+        CreateSave();
+        SaveData();
+        gfx_End();
+    }
     gfx_End();
 }
