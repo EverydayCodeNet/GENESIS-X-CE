@@ -1,2 +1,2 @@
 # GENESIS-X-CE
-The original Genesis X for the TI-84 Plus CE calculator.
+Genesis X: Space Colony Builder for the TI-84 Plus CE calculator.
