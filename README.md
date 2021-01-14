@@ -12,6 +12,7 @@ Genesis X is a sandbox space colony game for the TI-84 Plus CE calculator.
 ### Build Menu
 - [^][v] highlight building.
 - [enter] select building to place on map. 
+- [+] place building on map.
 
 ### Stats Menu 
 - [+] increase water level.
