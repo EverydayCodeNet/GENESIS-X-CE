@@ -136,7 +136,6 @@ void createTerrain() {
     int idx = 0;
     int row;
     int column;
-    //uint8_t randID = randInt(0,3);
     if (idx < numTiles) {
         for (row = 0; row < 20; row++) {
             for (column = 0; column < 20; column++) {
@@ -172,10 +171,8 @@ void createTerrain() {
 }
 
 void progressBar(int idx) {
-    //gfx_HorizLine(110,100,)
     gfx_SetColor(255);
     WhiText();
-    //gfx_PrintStringXY("BUILD",50 - gfx_GetStringWidth("BUILD") / 2,222);
     gfx_PrintStringXY("Loading...",110,100);
     gfx_FillRectangle(110,110,idx/4,20);
 }
@@ -221,7 +218,6 @@ void drawTerrain() {
         
         //if next row is deeper than row, don't display front/left
         //last row should always show face
-        //if (terrain.z > nextRow.z || idx > 379)
         if (terrain.z > nextRow.z || idx > 379) {    
             gfx_FillTriangle(
                 terrain.x4 - xOffset, terrain.y4 - yOffset - nextRow.z, 
@@ -234,7 +230,8 @@ void drawTerrain() {
                 terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z,
                 terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z
             );
-            //optimize to only draw height that's needed - draws at wrong y-value
+
+            //draw full tile
             /*gfx_FillTriangle(
                 terrain.x4 - xOffset, terrain.y4 - yOffset,
                 terrain.x4 - xOffset, terrain.y4 - yOffset - (terrain.z),
@@ -262,19 +259,8 @@ void drawTerrain() {
             terrain.x2 - xOffset,terrain.y2 - yOffset, 
             terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
         );
-        /*gfx_FillTriangle(
-            terrain.x3 - xOffset,terrain.y3 - yOffset,
-            terrain.x3 - xOffset,terrain.y3 - yOffset - terrain.z, 
-            terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
-        );
-        gfx_FillTriangle(
-            terrain.x3 - xOffset,terrain.y3 - yOffset,
-            terrain.x2 - xOffset,terrain.y2 - yOffset, 
-            terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
-        );*/
-
         
-         
+        //attempt to optimize front right tile
         /*if (terrain.z > prev.z && (idx + 1) % 20 != 0) {
             gfx_FillTriangle(
                 terrain.x3 - xOffset,terrain.y3 - yOffset - prev.z,
@@ -444,12 +430,8 @@ void drawCursor() {
         gfx_SetPixel(game.cursorx,game.cursory + 1);
     } else {
         gfx_SetColor(255);
-        /*gfx_Line(terrain->topX - xOffset,terrain->topY - yOffset,terrain->x2 - xOffset,terrain->y2 - yOffset);
-        gfx_Line(terrain->x2 - xOffset,terrain->y2 - yOffset,terrain->x3 - xOffset,terrain->y3 - yOffset);
-        gfx_Line(terrain->x3 - xOffset,terrain->y3 - yOffset,terrain->x4 - xOffset,terrain->y4 - yOffset);
-        gfx_Line(terrain->x4 - xOffset,terrain->y4 - yOffset,terrain->topX - xOffset,terrain->topY - yOffset);*/
 
-        //does not work on water
+        //does not work well on water
         if (terrain->z > game.waterLevel) {
             gfx_Line(terrain->topX - xOffset,terrain->topY - yOffset - terrain->z,terrain->x2 - xOffset,terrain->y2 - yOffset - terrain->z);
             gfx_Line(terrain->x2 - xOffset,terrain->y2 - yOffset - terrain->z,terrain->x3 - xOffset,terrain->y3 - yOffset - terrain->z);
@@ -727,7 +709,7 @@ void doCursor() {
             delay(150);
             game.tileSelected--;
             doRedraw();
-        } else if (key == kb_Right && game.tileSelected != 379) {
+        } else if (key == kb_Right && game.tileSelected != 399) {
             delay(150);
             game.tileSelected++;
             doRedraw();
@@ -850,27 +832,6 @@ void updateStats() {
         
         game.numLoops = 0;
     }
-    /*if (game.climate != 0) {
-        
-        if (game.numLoops == 10000) {
-            //add or subtract from waterlevel
-            if (game.climate > 0) {
-                game.waterLevel++;
-            } else if (game.climate < 0 && game.waterLevel > 0) {
-                //waterlevel is uint8, waterlevel would go to 255
-                game.waterLevel--;
-            }
-            game.year++;
-            game.numLoops = 0;
-            //should terrain be updated here?
-            //temporary to see if it works
-            updateMap();
-            doRedraw();
-            //will update on next screen load
-        }
-    }*/
-    
-    
 }
 
 void main() {
