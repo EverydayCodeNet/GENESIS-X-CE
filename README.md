@@ -11,7 +11,7 @@ Dynamic water level:
 ![Global Warming GitHub](https://user-images.githubusercontent.com/59743315/105260901-9fbcc700-5b5c-11eb-886e-805c8d6fdcaf.png)
 
 ## Download
-1. Download the latest release of [GENESIS X] (https://github.com/EverydayCodeNet/GENESIS-X-CE/releases/).
+1. Download the latest release of [GENESIS X](https://github.com/EverydayCodeNet/GENESIS-X-CE/releases/).
 2. Unzip the files to your desktop.
 
 #### Physical Calculator with TI-Connect CE
