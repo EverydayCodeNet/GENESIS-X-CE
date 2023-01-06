@@ -31,14 +31,15 @@ typedef struct {
     int numLoops;
     //water level that will increase with ice to water gens
     //water level maybe needs to be int because uint8 will go from 0 to 255
+    //waterlevel shouldn't be default, should display snow until planet is hot enough
     uint8_t waterLevel;
     //snow level will decrease with ice to water gens
     uint8_t snowLevel;
     int climate;
     //ice level needed too? if run out of ice, ice to water gens can't work.
-    uint8_t evapmultiplier;
-    uint8_t watermultiplier;
-    uint8_t income;
+    uint8_t evapMultiplier;
+    uint8_t waterMultiplier;
+    int income;
     //need heat, water, power
     int population;
     //disable keyboard scan if this is enabled
@@ -51,8 +52,8 @@ game_t game;
 
 const char *appvarName = "slota";
 
-unsigned int TERRAIN_WIDTH = 24;
-unsigned int TERRAIN_HEIGHT = 12;
+uint8_t TERRAIN_WIDTH = 24;
+uint8_t TERRAIN_HEIGHT = 12;
 
 typedef struct {
     //columns and rows
@@ -64,7 +65,7 @@ typedef struct {
     int y2,y3,y4;
     int z;
     bool building;
-    int buildingID;
+    unsigned int buildingID;
 
     //building ID guide
     //16xx - power
@@ -99,10 +100,6 @@ void LoadData(void) {
     }
 }
 
-void DelData(void) {
-    ti_var_t slota;
-}
-
 void CreateSave(void) {
     ti_var_t slota;
     ti_CloseAll();
@@ -132,10 +129,9 @@ void BlaText(void) {
 }
 
 void createTerrain() {
-    ti_var_t slota;
     int idx = 0;
-    int row;
-    int column;
+    uint8_t column, row;
+
     if (idx < numTiles) {
         for (row = 0; row < 20; row++) {
             for (column = 0; column < 20; column++) {
@@ -170,12 +166,12 @@ void createTerrain() {
     }
 }
 
-void progressBar(int idx) {
+/*void progressBar(int idx) {
     gfx_SetColor(255);
     WhiText();
     gfx_PrintStringXY("Loading...",110,100);
     gfx_FillRectangle(110,110,idx/4,20);
-}
+}*/
 
 void drawTerrain() {
     int idx;
@@ -183,12 +179,9 @@ void drawTerrain() {
     for (idx = 0; idx < 400; idx++) {
         terrain_t terrain = terrainTiles[idx];
         terrain_t prev = terrainTiles[idx - 1];
-        terrain_t next = terrainTiles[idx + 1];
+        //terrain_t next = terrainTiles[idx + 1];
         terrain_t nextRow = terrainTiles[idx + 20];
         //draw height
-        
-        //progress bar won't leave after loading
-        //if (idx < 400) progressBar(idx);
 
         //back right
         gfx_SetColor(96);
@@ -277,7 +270,30 @@ void drawTerrain() {
         
         //top
         gfx_SetColor(96);
-        if (terrain.z < game.waterLevel) gfx_SetColor(16);
+        if (terrain.z < game.waterLevel) {
+            /*gfx_SetColor(16);
+            gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
+                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
+                        terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z);
+
+            gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
+                            terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
+                            terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);*/
+            gfx_TransparentSprite(water_top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
+        } else if (terrain.z > 25 && game.waterLevel < 25) {
+            gfx_SetColor(255);
+            gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
+                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
+                        terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z);
+
+            gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
+                            terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
+                            terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);
+            // gfx_TransparentSprite(snow_top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
+        } else {
+            gfx_TransparentSprite(top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
+        }
+        /*if (terrain.z < game.waterLevel) gfx_SetColor(16);
         //snow level at 25 should be modified by game
         if (terrain.z > 25 && game.waterLevel < 25) gfx_SetColor(255);
         gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
@@ -286,7 +302,7 @@ void drawTerrain() {
 
         gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
                         terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                        terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);
+                        terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);*/
     }
 }
 
@@ -301,9 +317,9 @@ void drawBuildings() {
 
                 //remove any multiplier
                 if (terrain->buildingID == 2301) {
-                    game.watermultiplier--;
+                    game.waterMultiplier--;
                 } else if (terrain->buildingID == 1602) {
-                    game.evapmultiplier--;
+                    game.evapMultiplier--;
                 } else if (terrain->buildingID == 801) {
                     game.population -= 10;
                 } else if (terrain->buildingID == 1301) {
@@ -415,7 +431,6 @@ void updateMap() {
 }
 
 void drawCursor() {
-    int idx;
     terrain_t* terrain = &(terrainTiles[game.tileSelected]);
     gfx_SetColor(255);
     //change cursor to building selected
@@ -517,7 +532,7 @@ void drawScreen() {
         gfx_SetDrawScreen();
         drawCursor();
     } else if (game.menuSelected == 1) {
-        gfx_Begin();
+        //gfx_Begin();
         canQuit = false;
         gfx_SetPalette(global_palette, sizeof_global_palette, 0);
         gfx_SetTransparentColor(0);
@@ -526,10 +541,10 @@ void drawScreen() {
             gfx_SetDrawBuffer();
             gfx_ZeroScreen();
             drawTabs();
-            if (kb_Data[7] & kb_Up && game.buildingSelected != 0) {
+            if (kb_Data[7] & kb_Up && buildingSelected > 0) {
                 buildingSelected--;
                 delay(150);
-            } else if (kb_Data[7] & kb_Down && game.buildingSelected != 4) {
+            } else if (kb_Data[7] & kb_Down && buildingSelected < 4) {
                 buildingSelected++;
                 delay(150);
             } 
@@ -600,7 +615,7 @@ void drawScreen() {
         //water
         //population
         canQuit = false;
-        gfx_Begin();
+        //gfx_Begin();
         do {
             kb_Scan();
             gfx_SetDrawBuffer();
@@ -626,9 +641,9 @@ void drawScreen() {
             gfx_PrintStringXY("Population: ",10,90);
             gfx_PrintInt(game.population,1);
             gfx_PrintStringXY("Heat Multiplier: ",10,105);
-            gfx_PrintInt(game.evapmultiplier,1);
+            gfx_PrintInt(game.evapMultiplier,1);
             gfx_PrintStringXY("Water Multiplier: ",10,120);
-            gfx_PrintInt(game.watermultiplier,1);
+            gfx_PrintInt(game.waterMultiplier,1);
             gfx_SetTextScale(2,2);
             YelText();
             gfx_PrintStringXY("EDIT TERRAIN",10,140);
@@ -749,11 +764,11 @@ void handleKeys() {
             terrain->buildingID = game.buildingSelected;
             if (game.buildingSelected == 2301) {
                 //ice to water
-                game.watermultiplier++;
+                game.waterMultiplier++;
             } else if (game.buildingSelected == 801) {
                 game.population += 10;
             } else if (game.buildingSelected == 1602) {
-                game.evapmultiplier++;
+                game.evapMultiplier++;
             } else if (game.buildingSelected == 1301) {
                 game.income++;
             }
@@ -764,25 +779,28 @@ void handleKeys() {
             /*//delay so doesn't trigger menu again
             delay(150);
             drawTabs();*/
+
+            // add rising edge detector instead of delaying
             updateMap();
             doRedraw();
         }
     }
 }
 
-//supposed to be startGame - ran into conflict error with startGame bool
 void runGame() {
     gfx_Begin();
 
     if (game.seed == 0) {
-        //game.seed = (rtc_Time());
-        //game.seed = randInt(1,9999);
-        //reset all parameters
+        srand(rtc_Time());
+        game.seed = randInt(-10000,10000);
+        
+        //reset all parameters - no cheaters
         game.waterLevel = 0;
         game.population = 0;
     }
-    game.seed = 25;
+    //game.seed = 25;
     createTerrain();
+    //free();
     //may cause issue with placing buildings
     game.cursorx = 160;
     game.cursory = 120;
@@ -813,7 +831,7 @@ void updateStats() {
     game.numLoops++;
     //income
     game.genCoin += game.income / 10;
-    game.climate = game.watermultiplier - game.evapmultiplier;
+    game.climate = game.waterMultiplier - game.evapMultiplier;
     //hours in mars year - 16488
     if (game.numLoops >= 6000) {
         game.year++;
@@ -854,7 +872,8 @@ void main() {
                 canQuit = true;
             }
         }
-    } while (canQuit != true);
+        // gfx_TransparentSprite(top,0,0);
+    } while (!(canQuit));
     game.save = true;
     //CreateSave();
     SaveData();
