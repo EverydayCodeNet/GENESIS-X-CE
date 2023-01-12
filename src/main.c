@@ -20,6 +20,7 @@ typedef struct {
     bool doCursor;
     int zAvg;
     bool canExit;
+    bool dispStats;
 
     //could be set to extern int?
     uint8_t menuSelected;
@@ -753,6 +754,12 @@ void handleKeys() {
         //save game? 
     }*/
 
+    if ((kb_Data[1] & kb_Mode) && game.dispStats == false) {
+        game.dispStats = true;
+    } else {
+        game.dispStats = false;
+    }
+
     if (kb_Data[6] & kb_Add && game.buildingSelected == 0) {
         game.menuSelected = 1;
         drawScreen();
@@ -821,7 +828,6 @@ void runGame() {
 
 
 void updateStats() {
-    
     //maybe force ice to water gen to build on ice
     //total climate variable that sums the two forces
 
@@ -865,14 +871,13 @@ void main() {
         if (game.doCursor == true) doCursor();
         drawCursor();
         if (game.menuSelected == 0 && game.buildingSelected == 0) updateStats();
-        //dispStats();
+        if (game.dispStats == true) dispStats();
         handleKeys();
         if (kb_Data[6] & kb_Clear) {
             if (game.menuSelected != 1) {
                 canQuit = true;
             }
         }
-        // gfx_TransparentSprite(top,0,0);
     } while (!(canQuit));
     game.save = true;
     //CreateSave();
