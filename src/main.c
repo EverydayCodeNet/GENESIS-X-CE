@@ -159,8 +159,6 @@ void createTerrain() {
                 } else if (idx > 19 && column == 0) {
                     terrain->z = prevRow.z + randInt(-5,5);
                 }
-                //temporary building test
-                //if (idx == 210) terrain->building = 1; terrain->buildingID = 1301;
                 idx++;
             }
         }
@@ -175,9 +173,7 @@ void createTerrain() {
 }*/
 
 void drawTerrain() {
-    int idx;
-    
-    for (idx = 0; idx < 400; idx++) {
+    for (int idx = 0; idx < 400; idx++) {
         terrain_t terrain = terrainTiles[idx];
         terrain_t prev = terrainTiles[idx - 1];
         //terrain_t next = terrainTiles[idx + 1];
@@ -224,18 +220,6 @@ void drawTerrain() {
                 terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z,
                 terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z
             );
-
-            //draw full tile
-            /*gfx_FillTriangle(
-                terrain.x4 - xOffset, terrain.y4 - yOffset,
-                terrain.x4 - xOffset, terrain.y4 - yOffset - (terrain.z),
-                terrain.x3 - xOffset, terrain.y3 - yOffset
-            );
-            gfx_FillTriangle(
-                terrain.x3 - xOffset, terrain.y3 - yOffset,
-                terrain.x3 - xOffset, terrain.y3 - yOffset - (terrain.z),
-                terrain.x4 - xOffset, terrain.y4 - yOffset - (terrain.z)
-            );*/
         }
 
         //front right
@@ -254,56 +238,15 @@ void drawTerrain() {
             terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
         );
         
-        //attempt to optimize front right tile
-        /*if (terrain.z > prev.z && (idx + 1) % 20 != 0) {
-            gfx_FillTriangle(
-                terrain.x3 - xOffset,terrain.y3 - yOffset - prev.z,
-                terrain.x3 - xOffset,terrain.y3 - yOffset - terrain.z, 
-                terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
-            );
-            gfx_FillTriangle(
-                terrain.x3 - xOffset,terrain.y3 - yOffset- prev.z,
-                terrain.x2 - xOffset,terrain.y2 - yOffset- prev.z, 
-                terrain.x2 - xOffset,terrain.y2 - yOffset - terrain.z
-            );
-        }*/
-        
-        
         //top
         gfx_SetColor(96);
         if (terrain.z < game.waterLevel) {
-            /*gfx_SetColor(16);
-            gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
-                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                        terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z);
-
-            gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
-                            terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                            terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);*/
             gfx_TransparentSprite(water_top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
         } else if (terrain.z > 25 && game.waterLevel < 25) {
-            gfx_SetColor(255);
-            gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
-                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                        terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z);
-
-            gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
-                            terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                            terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);
-            // gfx_TransparentSprite(snow_top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
+            gfx_TransparentSprite(snow_top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
         } else {
             gfx_TransparentSprite(top,terrain.x4 - xOffset,terrain.topY - yOffset - terrain.z);
         }
-        /*if (terrain.z < game.waterLevel) gfx_SetColor(16);
-        //snow level at 25 should be modified by game
-        if (terrain.z > 25 && game.waterLevel < 25) gfx_SetColor(255);
-        gfx_FillTriangle(terrain.x4 - xOffset, terrain.y4 - yOffset - terrain.z,
-                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                        terrain.x3 - xOffset, terrain.y3 - yOffset - terrain.z);
-
-        gfx_FillTriangle(terrain.x3 - xOffset,terrain.y3 - terrain.z - yOffset,
-                        terrain.topX - xOffset, terrain.topY - yOffset - terrain.z,
-                        terrain.x2 - xOffset, terrain.y2 - yOffset - terrain.z);*/
     }
 }
 
@@ -514,7 +457,6 @@ void drawScreen() {
     gfx_SetPalette(global_palette, sizeof_global_palette, 0);
     gfx_SetTransparentColor(0);
     key = kb_Data[6];
-    //gfx_SetDrawScreen();
     gfx_ZeroScreen();
     if (game.menuSelected == 0) {
         gfx_SetDrawScreen();
@@ -533,7 +475,7 @@ void drawScreen() {
         gfx_SetDrawScreen();
         drawCursor();
     } else if (game.menuSelected == 1) {
-        //gfx_Begin();
+
         canQuit = false;
         gfx_SetPalette(global_palette, sizeof_global_palette, 0);
         gfx_SetTransparentColor(0);
@@ -588,7 +530,6 @@ void drawScreen() {
             }
             gfx_SwapDraw();
             //need canquit variable here, clear to go back to map
-            //if (kb_Data[6] & kb_Clear) 
             if (kb_Data[1] & kb_Zoom) {
                 game.menuSelected = 2;
                 game.buildingSelected = 0;
@@ -805,9 +746,7 @@ void runGame() {
         game.waterLevel = 0;
         game.population = 0;
     }
-    //game.seed = 25;
     createTerrain();
-    //free();
     //may cause issue with placing buildings
     game.cursorx = 160;
     game.cursory = 120;
